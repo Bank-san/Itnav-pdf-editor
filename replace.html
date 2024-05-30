@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PDF編集ツール</title>
+    <link
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        background-color: #f8f9fa;
+      }
+      .container {
+        margin-top: 50px;
+      }
+      .card {
+        margin: 20px;
+        padding: 20px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      .btn-primary,
+      .btn-secondary {
+        margin-top: 20px;
+      }
+      #downloadLink {
+        margin-top: 20px;
+        display: block;
+      }
+      #fileList {
+        margin-top: 20px;
+      }
+      .file-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .thumbnail {
+        width: 100px;
+        height: auto;
+        margin-right: 10px;
+      }
+      .remove-btn {
+        margin-left: auto;
+        margin-right: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="text-center">
+        <h1 class="mb-4">PDF編集ツール</h1>
+        <div class="card">
+          <div class="card-body">
+            <input
+              type="file"
+              id="originalPdfInput"
+              accept="application/pdf"
+              class="form-control-file mb-3"
+              onchange="updateOriginalFileList()"
+            />
+            <button
+              onclick="document.getElementById('originalPdfInput').click()"
+              class="btn btn-secondary"
+            >
+              元のPDFを追加
+            </button>
+            <div id="originalFileList" class="text-left mb-3"></div>
+            <input
+              type="file"
+              id="replacementPdfInput"
+              accept="application/pdf"
+              class="form-control-file mb-3"
+              onchange="updateReplacementFileList()"
+            />
+            <button
+              onclick="document.getElementById('replacementPdfInput').click()"
+              class="btn btn-secondary"
+            >
+              差し替えるPDFを追加
+            </button>
+            <div id="replacementFileList" class="text-left mb-3"></div>
+            <input
+              type="number"
+              id="pageIndex"
+              class="form-control mb-3"
+              placeholder="差し替えるページ番号"
+            />
+            <input
+              type="text"
+              id="fileName"
+              class="form-control mb-3"
+              placeholder="保存するファイル名を入力"
+            />
+            <button onclick="replacePage()" class="btn btn-primary">
+              ページを差し替え
+            </button>
+            <a id="downloadLink" class="btn btn-success" style="display: none"
+              >編集されたPDFをダウンロード</a
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.7.570/pdf.min.js"></script>
+    <script>
+      let originalFile = null;
+      let replacementFile = null;
+
+      function updateOriginalFileList() {
+        const input = document.getElementById("originalPdfInput");
+        const fileList = document.getElementById("originalFileList");
+        fileList.innerHTML = "";
+
+        if (input.files.length > 0) {
+          originalFile = input.files[0];
+          const listItem = document.createElement("div");
+          listItem.className = "file-item";
+
+          const thumbnail = document.createElement("img");
+          thumbnail.className = "thumbnail";
+
+          const removeButton = document.createElement("button");
+          removeButton.className = "btn btn-danger remove-btn";
+          removeButton.textContent = "削除";
+          removeButton.onclick = () => {
+            originalFile = null;
+            fileList.innerHTML = "";
+          };
+
+          const reader = new FileReader();
+          reader.onload = function (event) {
+            const arrayBuffer = event.target.result;
+            generateThumbnail(arrayBuffer, thumbnail);
+          };
+          reader.readAsArrayBuffer(originalFile);
+
+          listItem.appendChild(thumbnail);
+          listItem.appendChild(document.createTextNode(originalFile.name));
+          listItem.appendChild(removeButton);
+          fileList.appendChild(listItem);
+        }
+      }
+
+      function updateReplacementFileList() {
+        const input = document.getElementById("replacementPdfInput");
+        const fileList = document.getElementById("replacementFileList");
+        fileList.innerHTML = "";
+
+        if (input.files.length > 0) {
+          replacementFile = input.files[0];
+          const listItem = document.createElement("div");
+          listItem.className = "file-item";
+
+          const thumbnail = document.createElement("img");
+          thumbnail.className = "thumbnail";
+
+          const removeButton = document.createElement("button");
+          removeButton.className = "btn btn-danger remove-btn";
+          removeButton.textContent = "削除";
+          removeButton.onclick = () => {
+            replacementFile = null;
+            fileList.innerHTML = "";
+          };
+
+          const reader = new FileReader();
+          reader.onload = function (event) {
+            const arrayBuffer = event.target.result;
+            generateThumbnail(arrayBuffer, thumbnail);
+          };
+          reader.readAsArrayBuffer(replacementFile);
+
+          listItem.appendChild(thumbnail);
+          listItem.appendChild(document.createTextNode(replacementFile.name));
+          listItem.appendChild(removeButton);
+          fileList.appendChild(listItem);
+        }
+      }
+
+      async function generateThumbnail(arrayBuffer, imgElement) {
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: 0.2 });
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        await page.render({ canvasContext: context, viewport: viewport })
+          .promise;
+        imgElement.src = canvas.toDataURL();
+      }
+
+      async function replacePage() {
+        if (
+          !originalFile ||
+          !replacementFile ||
+          document.getElementById("pageIndex").value === ""
+        ) {
+          alert("元のPDF、差し替えるPDF、およびページ番号を指定してください。");
+          return;
+        }
+
+        const fileNameInput = document.getElementById("fileName");
+        const fileName = fileNameInput.value || "edited.pdf"; // デフォルトのファイル名を設定
+        const pageIndex =
+          parseInt(document.getElementById("pageIndex").value, 10) - 1; // ユーザーの入力を0インデックスに調整
+        const originalPdfArrayBuffer = await originalFile.arrayBuffer();
+        const replacementPdfArrayBuffer = await replacementFile.arrayBuffer();
+
+        const originalPdfDoc = await PDFLib.PDFDocument.load(
+          new Uint8Array(originalPdfArrayBuffer)
+        );
+        const replacementPdfDoc = await PDFLib.PDFDocument.load(
+          new Uint8Array(replacementPdfArrayBuffer)
+        );
+
+        if (pageIndex < 0 || pageIndex >= originalPdfDoc.getPageCount()) {
+          alert("ページ番号が無効です。");
+          return;
+        }
+
+        const [replacementPage] = await originalPdfDoc.copyPages(
+          replacementPdfDoc,
+          [0]
+        );
+        originalPdfDoc.removePage(pageIndex);
+        originalPdfDoc.insertPage(pageIndex, replacementPage);
+
+        const pdfBytes = await originalPdfDoc.save();
+        const blob = new Blob([pdfBytes], { type: "application/pdf" });
+        const link = document.getElementById("downloadLink");
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        link.style.display = "block";
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JPEG-PDF変換ツール</title>
+    <link
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        background-color: #f8f9fa;
+      }
+      .container {
+        margin-top: 50px;
+      }
+      .card {
+        margin: 20px;
+        padding: 20px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      .btn-primary,
+      .btn-secondary {
+        margin-top: 20px;
+      }
+      #downloadLink {
+        margin-top: 20px;
+        display: block;
+      }
+      #fileList {
+        margin-top: 20px;
+      }
+      .file-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .thumbnail {
+        width: 100px;
+        height: auto;
+        margin-right: 10px;
+      }
+      .remove-btn {
+        margin-left: auto;
+        margin-right: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="text-center">
+        <h1 class="mb-4">JPEG-PDF変換ツール</h1>
+        <div class="card">
+          <div class="card-body">
+            <input
+              type="file"
+              id="jpegInput"
+              accept="image/jpeg"
+              multiple
+              class="form-control-file mb-3"
+              onchange="updateFileList()"
+            />
+            <button
+              onclick="document.getElementById('jpegInput').click()"
+              class="btn btn-secondary"
+            >
+              ファイルを追加
+            </button>
+            <div id="fileList" class="text-left"></div>
+            <input
+              type="text"
+              id="fileName"
+              class="form-control mb-3"
+              placeholder="保存するファイル名を入力"
+            />
+            <button onclick="convertToPdf()" class="btn btn-primary">
+              PDFに変換
+            </button>
+            <a id="downloadLink" class="btn btn-success" style="display: none"
+              >PDFをダウンロード</a
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script>
+      const selectedFiles = [];
+
+      function updateFileList() {
+        const input = document.getElementById("jpegInput");
+        const fileList = document.getElementById("fileList");
+        fileList.innerHTML = "";
+
+        for (const file of input.files) {
+          if (!selectedFiles.includes(file)) {
+            selectedFiles.push(file);
+          }
+        }
+
+        selectedFiles.forEach((file) => {
+          const listItem = document.createElement("div");
+          listItem.className = "file-item";
+
+          const thumbnail = document.createElement("img");
+          thumbnail.className = "thumbnail";
+
+          const removeButton = document.createElement("button");
+          removeButton.className = "btn btn-danger remove-btn";
+          removeButton.textContent = "削除";
+          removeButton.onclick = () => {
+            const index = selectedFiles.indexOf(file);
+            if (index > -1) {
+              selectedFiles.splice(index, 1);
+              updateFileListView();
+            }
+          };
+
+          const reader = new FileReader();
+          reader.onload = function (event) {
+            thumbnail.src = event.target.result;
+          };
+          reader.readAsDataURL(file);
+
+          listItem.appendChild(thumbnail);
+          listItem.appendChild(document.createTextNode(file.name));
+          listItem.appendChild(removeButton);
+          fileList.appendChild(listItem);
+        });
+      }
+
+      function updateFileListView() {
+        const fileList = document.getElementById("fileList");
+        fileList.innerHTML = "";
+
+        selectedFiles.forEach((file) => {
+          const listItem = document.createElement("div");
+          listItem.className = "file-item";
+
+          const thumbnail = document.createElement("img");
+          thumbnail.className = "thumbnail";
+
+          const removeButton = document.createElement("button");
+          removeButton.className = "btn btn-danger remove-btn";
+          removeButton.textContent = "削除";
+          removeButton.onclick = () => {
+            const index = selectedFiles.indexOf(file);
+            if (index > -1) {
+              selectedFiles.splice(index, 1);
+              updateFileListView();
+            }
+          };
+
+          const reader = new FileReader();
+          reader.onload = function (event) {
+            thumbnail.src = event.target.result;
+          };
+          reader.readAsDataURL(file);
+
+          listItem.appendChild(thumbnail);
+          listItem.appendChild(document.createTextNode(file.name));
+          listItem.appendChild(removeButton);
+          fileList.appendChild(listItem);
+        });
+      }
+
+      async function convertToPdf() {
+        const fileNameInput = document.getElementById("fileName");
+        const fileName = fileNameInput.value || "converted.pdf"; // デフォルトのファイル名を設定
+        if (selectedFiles.length === 0) {
+          alert("少なくとも1つのJPEGファイルを選択してください。");
+          return;
+        }
+
+        const pdfDoc = await PDFLib.PDFDocument.create();
+        for (const file of selectedFiles) {
+          const arrayBuffer = await file.arrayBuffer();
+          const jpgImage = await pdfDoc.embedJpg(new Uint8Array(arrayBuffer));
+          const page = pdfDoc.addPage([jpgImage.width, jpgImage.height]);
+          page.drawImage(jpgImage, {
+            x: 0,
+            y: 0,
+            width: jpgImage.width,
+            height: jpgImage.height,
+          });
+        }
+
+        const pdfBytes = await pdfDoc.save();
+        const blob = new Blob([pdfBytes], { type: "application/pdf" });
+        const link = document.getElementById("downloadLink");
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        link.style.display = "block";
+      }
+    </script>
+  </body>
+</html>

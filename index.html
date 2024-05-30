@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>休眠用PDFツール</title>
+    <link
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        background-color: #f8f9fa;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      .container {
+        margin-top: 100px;
+        flex: 1;
+      }
+      .card {
+        margin: 20px;
+        transition: transform 0.2s;
+      }
+      .card:hover {
+        transform: scale(1.05);
+      }
+      .card-title {
+        font-size: 1.25rem;
+        font-weight: bold;
+      }
+      .btn-primary {
+        background-color: #007bff;
+        border-color: #007bff;
+      }
+      footer {
+        text-align: center;
+        padding: 10px;
+        background-color: #f1f1f1;
+        width: 100%;
+        position: fixed;
+        bottom: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container text-center">
+      <h1 class="mb-5">休眠用PDFツール</h1>
+      <div class="row justify-content-center">
+        <div class="col-md-4">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">JPEG-PDF変換</h5>
+              <p class="card-text">JPEG画像を簡単にPDF形式に変換します。</p>
+              <a href="convert.html" class="btn btn-primary">変換ツールへ</a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">PDF結合</h5>
+              <p class="card-text">
+                複数のPDFファイルを一つのドキュメントに結合します。
+              </p>
+              <a href="merge.html" class="btn btn-primary">結合ツールへ</a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">PDFページ差し替え</h5>
+              <p class="card-text">
+                指定したページを別のPDFページに差し替えます。
+              </p>
+              <a href="replace.html" class="btn btn-primary">編集ツールへ</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <footer>&copy; 2024 株式会社イトナブ All rights reserved.</footer>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  </body>
+</html>
