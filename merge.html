@@ -51,18 +51,21 @@
     <div class="container">
       <div class="text-center">
         <h1 class="mb-4">PDF結合ツール</h1>
+        <p>
+          PDFファイル同士の結合だけでなく、JPEGやHEIF/HEIC画像もそのまま結合できます。
+        </p>
         <div class="card">
           <div class="card-body">
             <input
               type="file"
-              id="pdfInput"
-              accept="application/pdf"
+              id="fileInput"
+              accept="application/pdf, image/jpeg, image/heif, image/heic"
               multiple
               class="form-control-file mb-3"
               onchange="updateFileList()"
             />
             <button
-              onclick="document.getElementById('pdfInput').click()"
+              onclick="document.getElementById('fileInput').click()"
               class="btn btn-secondary"
             >
               ファイルを追加
@@ -74,7 +77,7 @@
               class="form-control mb-3"
               placeholder="保存するファイル名を入力"
             />
-            <button onclick="mergePdfs()" class="btn btn-primary">
+            <button onclick="mergeFiles()" class="btn btn-primary">
               PDFを結合
             </button>
             <a id="downloadLink" class="btn btn-success" style="display: none"
@@ -88,11 +91,12 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.7.570/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/heic2any"></script>
     <script>
       const selectedFiles = [];
 
       function updateFileList() {
-        const input = document.getElementById("pdfInput");
+        const input = document.getElementById("fileInput");
         const fileList = document.getElementById("fileList");
         fileList.innerHTML = "";
 
@@ -121,9 +125,29 @@
           };
 
           const reader = new FileReader();
-          reader.onload = function (event) {
-            const arrayBuffer = event.target.result;
-            generateThumbnail(arrayBuffer, thumbnail);
+          reader.onload = async function (event) {
+            if (file.type === "application/pdf") {
+              const arrayBuffer = event.target.result;
+              generatePdfThumbnail(arrayBuffer, thumbnail);
+            } else if (
+              file.type === "image/heif" ||
+              file.type === "image/heic"
+            ) {
+              const heicBlob = new Blob([event.target.result], {
+                type: file.type,
+              });
+              const convertedBlob = await heic2any({
+                blob: heicBlob,
+                toType: "image/jpeg",
+              });
+              const convertedReader = new FileReader();
+              convertedReader.onload = function (e) {
+                thumbnail.src = e.target.result;
+              };
+              convertedReader.readAsDataURL(convertedBlob);
+            } else if (file.type === "image/jpeg") {
+              thumbnail.src = event.target.result;
+            }
           };
           reader.readAsArrayBuffer(file);
 
@@ -157,9 +181,29 @@
           };
 
           const reader = new FileReader();
-          reader.onload = function (event) {
-            const arrayBuffer = event.target.result;
-            generateThumbnail(arrayBuffer, thumbnail);
+          reader.onload = async function (event) {
+            if (file.type === "application/pdf") {
+              const arrayBuffer = event.target.result;
+              generatePdfThumbnail(arrayBuffer, thumbnail);
+            } else if (
+              file.type === "image/heif" ||
+              file.type === "image/heic"
+            ) {
+              const heicBlob = new Blob([event.target.result], {
+                type: file.type,
+              });
+              const convertedBlob = await heic2any({
+                blob: heicBlob,
+                toType: "image/jpeg",
+              });
+              const convertedReader = new FileReader();
+              convertedReader.onload = function (e) {
+                thumbnail.src = e.target.result;
+              };
+              convertedReader.readAsDataURL(convertedBlob);
+            } else if (file.type === "image/jpeg") {
+              thumbnail.src = event.target.result;
+            }
           };
           reader.readAsArrayBuffer(file);
 
@@ -170,7 +214,7 @@
         });
       }
 
-      async function generateThumbnail(arrayBuffer, imgElement) {
+      async function generatePdfThumbnail(arrayBuffer, imgElement) {
         const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
         const pdf = await loadingTask.promise;
         const page = await pdf.getPage(1);
@@ -185,25 +229,49 @@
         imgElement.src = canvas.toDataURL();
       }
 
-      async function mergePdfs() {
+      async function mergeFiles() {
         const fileNameInput = document.getElementById("fileName");
         const fileName = fileNameInput.value || "merged.pdf"; // デフォルトのファイル名を設定
         if (selectedFiles.length < 2) {
-          alert("少なくとも2つのPDFファイルを選択してください。");
+          alert("少なくとも2つのファイルを選択してください。");
           return;
         }
 
         const mergedPdf = await PDFLib.PDFDocument.create();
         for (const file of selectedFiles) {
           const arrayBuffer = await file.arrayBuffer();
-          const pdfDoc = await PDFLib.PDFDocument.load(
-            new Uint8Array(arrayBuffer)
-          );
-          const pages = await mergedPdf.copyPages(
-            pdfDoc,
-            pdfDoc.getPageIndices()
-          );
-          pages.forEach((page) => mergedPdf.addPage(page));
+          if (file.type === "application/pdf") {
+            const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+            const pages = await mergedPdf.copyPages(
+              pdfDoc,
+              pdfDoc.getPageIndices()
+            );
+            pages.forEach((page) => mergedPdf.addPage(page));
+          } else if (
+            file.type === "image/jpeg" ||
+            file.type === "image/heif" ||
+            file.type === "image/heic"
+          ) {
+            let jpgImage;
+            if (file.type === "image/jpeg") {
+              jpgImage = await mergedPdf.embedJpg(arrayBuffer);
+            } else {
+              const heicBlob = new Blob([arrayBuffer], { type: file.type });
+              const convertedBlob = await heic2any({
+                blob: heicBlob,
+                toType: "image/jpeg",
+              });
+              const convertedArrayBuffer = await convertedBlob.arrayBuffer();
+              jpgImage = await mergedPdf.embedJpg(convertedArrayBuffer);
+            }
+            const page = mergedPdf.addPage([jpgImage.width, jpgImage.height]);
+            page.drawImage(jpgImage, {
+              x: 0,
+              y: 0,
+              width: jpgImage.width,
+              height: jpgImage.height,
+            });
+          }
         }
 
         const pdfBytes = await mergedPdf.save();
