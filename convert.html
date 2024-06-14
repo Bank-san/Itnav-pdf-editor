@@ -24,7 +24,8 @@
       .btn-secondary {
         margin-top: 20px;
       }
-      #downloadLink {
+      #downloadLink,
+      #downloadJpegLink {
         margin-top: 20px;
         display: block;
       }
@@ -51,7 +52,9 @@
     <div class="container">
       <div class="text-center">
         <h1 class="mb-4">JPEG-PDF変換ツール</h1>
-        <p>JPEG、HEIF/HEIC画像をPDFに変換します。</p>
+        <p>
+          JPEG、HEIF/HEIC画像をPDFまたはJPEGに変換します。<br />HEIF/HEIC画像をJPEGに変換することもできます。
+        </p>
         <div class="card">
           <div class="card-body">
             <input
@@ -78,8 +81,17 @@
             <button onclick="convertToPdf()" class="btn btn-primary">
               PDFに変換
             </button>
+            <button onclick="convertToJpeg()" class="btn btn-primary">
+              JPEGに変換
+            </button>
             <a id="downloadLink" class="btn btn-success" style="display: none"
               >PDFをダウンロード</a
+            >
+            <a
+              id="downloadJpegLink"
+              class="btn btn-success"
+              style="display: none"
+              >JPEGをダウンロード</a
             >
             <a href="index.html" class="btn btn-primary">戻る</a>
           </div>
@@ -239,6 +251,34 @@
         link.href = URL.createObjectURL(blob);
         link.download = fileName;
         link.style.display = "block";
+      }
+
+      async function convertToJpeg() {
+        const fileNameInput = document.getElementById("fileName");
+        const fileName = fileNameInput.value || "converted.jpeg"; // デフォルトのファイル名を設定
+        if (selectedFiles.length === 0) {
+          alert("少なくとも1つのファイルを選択してください。");
+          return;
+        }
+
+        for (const file of selectedFiles) {
+          if (file.type === "image/heif" || file.type === "image/heic") {
+            const arrayBuffer = await file.arrayBuffer();
+            const heicBlob = new Blob([arrayBuffer], { type: file.type });
+            const convertedBlob = await heic2any({
+              blob: heicBlob,
+              toType: "image/jpeg",
+            });
+            const convertedArrayBuffer = await convertedBlob.arrayBuffer();
+            const blob = new Blob([convertedArrayBuffer], {
+              type: "image/jpeg",
+            });
+            const link = document.getElementById("downloadJpegLink");
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            link.style.display = "block";
+          }
+        }
       }
     </script>
   </body>
