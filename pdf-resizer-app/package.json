@@ -1,0 +1,16 @@
+{
+  "name": "pdf-resizer-app",
+  "version": "1.0.0",
+  "description": "A web application to resize PDF page sizes",
+  "main": "api/resize.js",
+  "scripts": {
+    "start": "node api/resize.js"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "express-fileupload": "^1.2.1",
+    "pdf-lib": "^1.17.1"
+  },
+  "author": "",
+  "license": "ISC"
+}
