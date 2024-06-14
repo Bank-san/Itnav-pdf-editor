@@ -52,14 +52,14 @@
       <div class="text-center">
         <h1 class="mb-4">PDF結合ツール</h1>
         <p>
-          PDFファイル同士の結合だけでなく、JPEGやHEIF/HEIC画像もそのまま結合できます。
+          PDFファイル同士の結合だけでなく、JPEG,PNG,HEIF/HEIC画像もそのまま結合できます。
         </p>
         <div class="card">
           <div class="card-body">
             <input
               type="file"
               id="fileInput"
-              accept="application/pdf, image/jpeg, image/heif, image/heic"
+              accept="application/pdf, image/jpeg, image/heif, image/heic, image/png"
               multiple
               class="form-control-file mb-3"
               onchange="updateFileList()"
@@ -145,7 +145,7 @@
                 thumbnail.src = e.target.result;
               };
               convertedReader.readAsDataURL(convertedBlob);
-            } else if (file.type === "image/jpeg") {
+            } else {
               thumbnail.src = event.target.result;
             }
           };
@@ -201,7 +201,7 @@
                 thumbnail.src = e.target.result;
               };
               convertedReader.readAsDataURL(convertedBlob);
-            } else if (file.type === "image/jpeg") {
+            } else {
               thumbnail.src = event.target.result;
             }
           };
@@ -249,12 +249,15 @@
             pages.forEach((page) => mergedPdf.addPage(page));
           } else if (
             file.type === "image/jpeg" ||
+            file.type === "image/png" ||
             file.type === "image/heif" ||
             file.type === "image/heic"
           ) {
-            let jpgImage;
+            let image;
             if (file.type === "image/jpeg") {
-              jpgImage = await mergedPdf.embedJpg(arrayBuffer);
+              image = await mergedPdf.embedJpg(arrayBuffer);
+            } else if (file.type === "image/png") {
+              image = await mergedPdf.embedPng(arrayBuffer);
             } else {
               const heicBlob = new Blob([arrayBuffer], { type: file.type });
               const convertedBlob = await heic2any({
@@ -262,14 +265,14 @@
                 toType: "image/jpeg",
               });
               const convertedArrayBuffer = await convertedBlob.arrayBuffer();
-              jpgImage = await mergedPdf.embedJpg(convertedArrayBuffer);
+              image = await mergedPdf.embedJpg(convertedArrayBuffer);
             }
-            const page = mergedPdf.addPage([jpgImage.width, jpgImage.height]);
-            page.drawImage(jpgImage, {
+            const page = mergedPdf.addPage([image.width, image.height]);
+            page.drawImage(image, {
               x: 0,
               y: 0,
-              width: jpgImage.width,
-              height: jpgImage.height,
+              width: image.width,
+              height: image.height,
             });
           }
         }
